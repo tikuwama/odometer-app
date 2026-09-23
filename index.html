@@ -1,0 +1,1935 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>オドメーター記録</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@500;700&family=Noto+Sans+JP:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    /* --- light: 昼の整備記録帳 (paper logbook, daylight) --- */
+    --bg: #E7E2D3;
+    --bg-grad: #DED8C6;
+    --surface: #FBF9F2;
+    --surface-2: #F1ECDD;
+    --ink: #26241C;
+    --ink-soft: #5B5748;
+    --line: #C9C2AC;
+    --accent: #C4791F;
+    --accent-ink: #FBF9F2;
+    --good: #4C7A5E;
+    --warn: #A6432E;
+    --drum-bg: #26241C;
+    --drum-fg: #F1ECDD;
+    --drum-fg-dim: #6B6858;
+    --shadow: 0 1px 0 rgba(38,36,28,0.06);
+  }
+  @media (prefers-color-scheme: dark){
+    :root:not([data-theme="light"]){
+      /* --- dark: 夜のガレージ (dashboard glow, night garage) --- */
+      --bg: #0F1417;
+      --bg-grad: #131A1E;
+      --surface: #182025;
+      --surface-2: #1E282E;
+      --ink: #E8E4D8;
+      --ink-soft: #9AA3A6;
+      --line: #2B363C;
+      --accent: #E2A63B;
+      --accent-ink: #14181A;
+      --good: #6FBF97;
+      --warn: #E2725B;
+      --drum-bg: #0B0E10;
+      --drum-fg: #E2A63B;
+      --drum-fg-dim: #4A4234;
+      --shadow: 0 1px 0 rgba(0,0,0,0.3);
+    }
+  }
+  :root[data-theme="dark"]{
+    --bg: #0F1417;
+    --bg-grad: #131A1E;
+    --surface: #182025;
+    --surface-2: #1E282E;
+    --ink: #E8E4D8;
+    --ink-soft: #9AA3A6;
+    --line: #2B363C;
+    --accent: #E2A63B;
+    --accent-ink: #14181A;
+    --good: #6FBF97;
+    --warn: #E2725B;
+    --drum-bg: #0B0E10;
+    --drum-fg: #E2A63B;
+    --drum-fg-dim: #4A4234;
+    --shadow: 0 1px 0 rgba(0,0,0,0.3);
+  }
+
+  *{ box-sizing: border-box; }
+  html,body{ margin:0; padding:0; }
+  body{
+    background: radial-gradient(120% 140% at 50% -10%, var(--bg-grad), var(--bg));
+    color: var(--ink);
+    font-family: "Noto Sans JP", "Inter", -apple-system, BlinkMacSystemFont, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    min-height: 100vh;
+    transition: background 0.25s ease, color 0.25s ease;
+  }
+  .page{
+    max-width: 640px;
+    margin: 0 auto;
+    padding: 20px 16px 64px;
+  }
+
+  /* ---------- Storage warning ---------- */
+  .storage-warning{
+    margin-bottom: 12px;
+    padding: 11px 14px;
+    border-radius: 10px;
+    background: color-mix(in srgb, var(--warn) 14%, var(--surface));
+    border: 1px solid var(--warn);
+    color: var(--warn);
+    font-size: 12.5px;
+    line-height: 1.6;
+  }
+  .storage-warning.hidden{ display: none !important; }
+
+  /* ---------- Sync banner ---------- */
+  .sync-banner{
+    margin-bottom: 12px;
+    padding: 9px 14px;
+    border-radius: 10px;
+    background: color-mix(in srgb, var(--good) 16%, var(--surface));
+    border: 1px solid var(--good);
+    color: var(--good);
+    font-size: 12.5px;
+    text-align: center;
+    transition: opacity 0.3s ease;
+  }
+
+  /* ---------- Vehicle switcher ---------- */
+  .vehicle-card{
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 18px;
+    padding: 14px 16px;
+    box-shadow: var(--shadow);
+  }
+  .vehicle-scroll{
+    display: flex;
+    gap: 8px;
+    overflow-x: auto;
+    padding-bottom: 2px;
+  }
+  .vehicle-chip{
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex: 0 0 auto;
+    padding: 8px 14px;
+    border-radius: 999px;
+    border: 1px solid var(--line);
+    background: var(--surface-2);
+    color: var(--ink-soft);
+    font-size: 13.5px;
+    font-weight: 500;
+    cursor: pointer;
+    white-space: nowrap;
+  }
+  .vehicle-chip.active{
+    border-color: var(--accent);
+    color: var(--ink);
+    background: color-mix(in srgb, var(--accent) 14%, var(--surface-2));
+    font-weight: 700;
+  }
+  .vehicle-chip .vc-icon{ font-size: 15px; }
+  .vehicle-chip-add{
+    flex: 0 0 auto;
+    padding: 8px 14px;
+    border-radius: 999px;
+    border: 1px dashed var(--line);
+    background: transparent;
+    color: var(--ink-soft);
+    font-size: 13.5px;
+    cursor: pointer;
+    white-space: nowrap;
+  }
+  .vehicle-manage{
+    margin-top: 12px;
+    border-top: 1px solid var(--line);
+    padding-top: 12px;
+  }
+  .vehicle-manage-row{
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 0;
+    font-size: 13px;
+    flex-wrap: wrap;
+  }
+  .vehicle-manage-row .vm-name{ flex: 1; color: var(--ink); }
+  .vehicle-manage-row button{
+    font-size: 11.5px;
+    padding: 4px 9px;
+    border-radius: 7px;
+    border: 1px solid var(--line);
+    background: var(--surface-2);
+    color: var(--ink-soft);
+  }
+  .vehicle-manage-row button.danger{ color: var(--warn); border-color: var(--warn); }
+  .vehicle-manage-toggle{
+    margin-top: 10px;
+    font-size: 12.5px;
+    color: var(--ink-soft);
+    background: none;
+    border: none;
+    padding: 4px 0;
+    cursor: pointer;
+    text-decoration: underline;
+    text-underline-offset: 3px;
+  }
+
+  .add-vehicle-form{
+    margin-top: 12px;
+    display: none;
+  }
+  .add-vehicle-form.open{ display: block; }
+  .add-vehicle-row{
+    display: flex;
+    gap: 8px;
+  }
+  .add-vehicle-row input[type="text"]{
+    flex: 1;
+    padding: 9px 10px;
+    font-size: 14px;
+    font-family: inherit;
+    color: var(--ink);
+    background: var(--surface-2);
+    border: 1px solid var(--line);
+    border-radius: 9px;
+  }
+  .type-toggle{
+    display: flex;
+    gap: 6px;
+    margin-top: 8px;
+  }
+  .type-toggle button{
+    flex: 1;
+    padding: 8px;
+    font-size: 13px;
+    border-radius: 8px;
+    border: 1px solid var(--line);
+    background: var(--surface-2);
+    color: var(--ink-soft);
+  }
+  .type-toggle button.selected{
+    border-color: var(--accent);
+    color: var(--ink);
+    background: color-mix(in srgb, var(--accent) 14%, var(--surface-2));
+    font-weight: 700;
+  }
+  .add-vehicle-actions{
+    display: flex;
+    gap: 8px;
+    margin-top: 8px;
+  }
+  .add-vehicle-actions button{
+    padding: 8px 14px;
+    font-size: 13px;
+    border-radius: 8px;
+  }
+  .add-vehicle-actions .primary{
+    color: var(--accent-ink);
+    background: var(--accent);
+    border: none;
+    font-weight: 700;
+  }
+  .add-vehicle-actions .ghost{
+    background: transparent;
+    border: 1px solid var(--line);
+    color: var(--ink-soft);
+  }
+
+  /* ---------- Hero / mechanical odometer ---------- */
+  .hero{
+    position: relative;
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 18px;
+    padding: 28px 20px 22px;
+    margin-top: 16px;
+    box-shadow: var(--shadow);
+    text-align: center;
+  }
+  .theme-toggle{
+    position: absolute;
+    top: 14px;
+    right: 14px;
+    width: 34px;
+    height: 34px;
+    border-radius: 999px;
+    border: 1px solid var(--line);
+    background: var(--surface-2);
+    color: var(--ink-soft);
+    font-size: 15px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .theme-toggle:hover{ color: var(--accent); border-color: var(--accent); }
+
+  .hero-label{
+    margin: 0 0 14px;
+    font-size: 13px;
+    color: var(--ink-soft);
+  }
+  .odometer{
+    display: inline-flex;
+    gap: 3px;
+    background: var(--drum-bg);
+    padding: 12px 14px;
+    border-radius: 10px;
+    box-shadow: inset 0 2px 6px rgba(0,0,0,0.35);
+  }
+  .digit{
+    font-family: "JetBrains Mono", monospace;
+    font-weight: 700;
+    font-size: clamp(28px, 8vw, 40px);
+    color: var(--drum-fg);
+    background: linear-gradient(180deg, rgba(255,255,255,0.05), rgba(0,0,0,0.15));
+    width: 0.85em;
+    text-align: center;
+    border-radius: 3px;
+    line-height: 1.3;
+  }
+  .digit.dim{ color: var(--drum-fg-dim); }
+  .digit.unit{
+    color: var(--drum-fg-dim);
+    font-size: clamp(16px, 4.5vw, 20px);
+    align-self: center;
+    width: auto;
+    padding-left: 4px;
+  }
+  .hero-date{
+    margin: 14px 0 0;
+    font-size: 13px;
+    color: var(--ink-soft);
+  }
+
+  .stats-row{
+    margin-top: 20px;
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    border-top: 1px solid var(--line);
+    padding-top: 16px;
+  }
+  .stat{ padding: 0 4px; }
+  .stat-value{
+    display: block;
+    font-family: "JetBrains Mono", monospace;
+    font-weight: 700;
+    font-size: clamp(16px, 4.5vw, 20px);
+    color: var(--ink);
+  }
+  .stat-label{
+    display: block;
+    margin-top: 3px;
+    font-size: 11.5px;
+    color: var(--ink-soft);
+    line-height: 1.4;
+  }
+
+  /* ---------- Cards ---------- */
+  .card{
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 18px;
+    padding: 20px;
+    margin-top: 16px;
+    box-shadow: var(--shadow);
+  }
+  .card h2{
+    margin: 0 0 16px;
+    font-size: 16px;
+    font-weight: 700;
+  }
+
+  .log-toggle{
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    width: 100%;
+    background: none;
+    border: none;
+    padding: 0;
+    margin: 0;
+    cursor: pointer;
+    text-align: left;
+    color: var(--ink);
+  }
+  .log-toggle h2{ margin: 0; }
+  .log-toggle-arrow{
+    display: inline-block;
+    font-size: 12px;
+    color: var(--ink-soft);
+    transition: transform 0.2s ease;
+    flex: 0 0 auto;
+  }
+  .log-toggle[aria-expanded="true"] .log-toggle-arrow{ transform: rotate(90deg); }
+  .log-toggle-count{
+    margin-left: auto;
+    font-size: 12.5px;
+    color: var(--ink-soft);
+    font-weight: 400;
+  }
+  #logListWrap{ margin-top: 16px; }
+
+  /* ---------- Form ---------- */
+  form label{
+    display: block;
+    font-size: 12.5px;
+    color: var(--ink-soft);
+    margin-bottom: 14px;
+  }
+  .field-row{
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+  }
+  input[type="date"], input[type="number"], input[type="text"]{
+    display: block;
+    width: 100%;
+    margin-top: 6px;
+    padding: 10px 11px;
+    font-size: 15px;
+    font-family: inherit;
+    color: var(--ink);
+    background: var(--surface-2);
+    border: 1px solid var(--line);
+    border-radius: 9px;
+    outline: none;
+  }
+  input:focus-visible{
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 25%, transparent);
+  }
+  label.checkbox{
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 13.5px;
+    color: var(--ink);
+  }
+  label.checkbox input{ width: 16px; height: 16px; margin: 0; }
+
+  .field-hint{
+    margin: -8px 0 14px;
+    font-size: 11.5px;
+    color: var(--ink-soft);
+    line-height: 1.5;
+  }
+
+  .form-actions{
+    display: flex;
+    gap: 10px;
+    margin-top: 4px;
+  }
+  button{
+    font-family: inherit;
+    cursor: pointer;
+  }
+  #submitBtn{
+    flex: 1;
+    padding: 12px;
+    font-size: 15px;
+    font-weight: 700;
+    color: var(--accent-ink);
+    background: var(--accent);
+    border: none;
+    border-radius: 10px;
+  }
+  #submitBtn:hover{ filter: brightness(1.06); }
+  .ghost{
+    padding: 12px 16px;
+    font-size: 14px;
+    color: var(--ink-soft);
+    background: transparent;
+    border: 1px solid var(--line);
+    border-radius: 10px;
+  }
+  .hidden{ display: none !important; }
+  .form-error{
+    margin: 10px 0 0;
+    font-size: 12.5px;
+    color: var(--warn);
+    min-height: 1em;
+  }
+
+  /* ---------- Chart ---------- */
+  .chart-scroll{
+    overflow-x: auto;
+    padding-bottom: 4px;
+  }
+  #chartSvg{ display: block; }
+  .bar-label{
+    font-size: 9.5px;
+    fill: var(--ink-soft);
+    font-family: "Noto Sans JP", sans-serif;
+  }
+  .bar-value{
+    font-size: 10px;
+    fill: var(--ink);
+    font-family: "JetBrains Mono", monospace;
+    font-weight: 700;
+  }
+
+  /* ---------- Log list ---------- */
+  .log-row{
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 4px 10px;
+    padding: 13px 0;
+    border-top: 1px solid var(--line);
+  }
+  .log-row:first-of-type{ border-top: none; }
+  .log-main{
+    font-family: "JetBrains Mono", monospace;
+    font-weight: 700;
+    font-size: 16px;
+  }
+  .log-date{
+    font-size: 12px;
+    color: var(--ink-soft);
+    grid-column: 1;
+  }
+  .log-delta{
+    font-family: "JetBrains Mono", monospace;
+    font-size: 13px;
+    text-align: right;
+    color: var(--good);
+    align-self: center;
+  }
+  .log-delta.negative{ color: var(--warn); }
+  .log-note{
+    grid-column: 1 / -1;
+    font-size: 12.5px;
+    color: var(--ink-soft);
+  }
+  .log-tags{
+    grid-column: 1 / -1;
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+  }
+  .tag{
+    font-size: 11px;
+    padding: 2px 8px;
+    border-radius: 999px;
+    border: 1px solid var(--line);
+    color: var(--ink-soft);
+  }
+  .log-actions{
+    grid-column: 1 / -1;
+    display: flex;
+    gap: 10px;
+    margin-top: 4px;
+  }
+  .log-actions button{
+    font-size: 12px;
+    padding: 5px 10px;
+    border-radius: 7px;
+    border: 1px solid var(--line);
+    background: var(--surface-2);
+    color: var(--ink-soft);
+  }
+  .log-actions button:hover{ color: var(--ink); }
+  .log-actions .confirm-del{ color: var(--warn); border-color: var(--warn); }
+
+  .empty-state{
+    margin: 0;
+    font-size: 13.5px;
+    color: var(--ink-soft);
+    text-align: center;
+    padding: 12px 0 4px;
+  }
+
+  /* ---------- Backup / restore ---------- */
+  .backup-desc{
+    margin: 0 0 16px;
+    font-size: 13px;
+    color: var(--ink-soft);
+    line-height: 1.6;
+  }
+  .backup-actions{
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+  }
+  .backup-actions button{
+    flex: 1;
+    min-width: 140px;
+    padding: 11px;
+    font-size: 13.5px;
+    font-weight: 700;
+    border-radius: 10px;
+  }
+  #exportBtn{
+    color: var(--accent-ink);
+    background: var(--accent);
+    border: none;
+  }
+  #exportBtn:hover{ filter: brightness(1.06); }
+  #importBtn{
+    color: var(--ink);
+    background: var(--surface-2);
+    border: 1px solid var(--line);
+  }
+  .backup-status{
+    margin: 12px 0 0;
+    font-size: 12.5px;
+    min-height: 1em;
+  }
+  .backup-status.ok{ color: var(--good); }
+  .backup-status.error{ color: var(--warn); }
+
+  #csvPanel label{
+    display: block;
+    font-size: 12.5px;
+    color: var(--ink-soft);
+    margin-bottom: 14px;
+  }
+  #csvPanel select,
+  #csvPanel input[type="text"]{
+    display: block;
+    width: 100%;
+    margin-top: 6px;
+    padding: 10px 11px;
+    font-size: 14px;
+    font-family: inherit;
+    color: var(--ink);
+    background: var(--surface-2);
+    border: 1px solid var(--line);
+    border-radius: 9px;
+    outline: none;
+  }
+
+  @media (max-width: 380px){
+    .field-row{ grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+<div class="page">
+
+  <div class="storage-warning hidden" id="storageWarning">
+    この端末のブラウザでは記録を保存できない状態です（プライベート/シークレットモードや、Cookie・サイトデータをブロックする設定が原因の可能性があります）。通常モードで開き直すか、設定をご確認ください。記録は今は保存されません。
+  </div>
+
+  <div class="sync-banner hidden" id="syncBanner">他のタブでの変更を反映しました</div>
+
+  <section class="vehicle-card">
+    <div class="vehicle-scroll" id="vehicleScroll"></div>
+    <button type="button" class="vehicle-manage-toggle" id="manageToggle">車両を管理・追加する</button>
+
+    <div class="vehicle-manage hidden" id="manageSection">
+      <div id="vehicleList"></div>
+
+      <div class="add-vehicle-form" id="addVehicleForm">
+        <div class="add-vehicle-row">
+          <input type="text" id="newVehicleName" placeholder="車両の名前（例: バイク）" maxlength="30">
+        </div>
+        <div class="type-toggle">
+          <button type="button" class="type-btn selected" data-type="car" id="typeBtnCar">🚗 車</button>
+          <button type="button" class="type-btn" data-type="motorcycle" id="typeBtnMoto">🏍️ バイク</button>
+        </div>
+        <div class="add-vehicle-actions">
+          <button type="button" class="primary" id="saveVehicleBtn">追加する</button>
+        </div>
+      </div>
+      <button type="button" class="vehicle-chip-add" id="openAddVehicle" style="margin-top:10px;">＋ 新しい車両を追加</button>
+    </div>
+  </section>
+
+  <header class="hero">
+    <button class="theme-toggle" id="themeToggle" aria-label="テーマを切り替える" title="テーマを切り替える">◐</button>
+    <p class="hero-label" id="heroLabel">最新のオドメーター</p>
+    <div class="odometer" id="odometerDisplay"></div>
+    <p class="hero-date" id="odometerDate">まだ記録がありません</p>
+
+    <div class="stats-row">
+      <div class="stat">
+        <span class="stat-value" id="statTotal">—</span>
+        <span class="stat-label">記録期間の走行距離 (km)</span>
+      </div>
+      <div class="stat">
+        <span class="stat-value" id="statAvg">—</span>
+        <span class="stat-label">1日あたり平均 (km)</span>
+      </div>
+      <div class="stat">
+        <span class="stat-value" id="statCount">0</span>
+        <span class="stat-label">記録数</span>
+      </div>
+    </div>
+  </header>
+
+  <section class="card">
+    <h2 id="formTitle">記録を追加</h2>
+    <form id="entryForm">
+      <div class="field-row">
+        <label>日付
+          <input type="date" id="inputDate" required>
+        </label>
+        <label>オドメーター (km)
+          <input type="number" id="inputOdo" min="0" step="1" inputmode="numeric" placeholder="例: 45210" required>
+        </label>
+      </div>
+      <label>メモ（任意）
+        <input type="text" id="inputNote" placeholder="例: 東名高速で帰省">
+      </label>
+      <label class="checkbox">
+        <input type="checkbox" id="inputFuel">
+        この日に給油した
+      </label>
+      <div class="hidden" id="fuelOdoWrap">
+        <label>給油した時点のオドメーター（km）※わかれば
+          <input type="number" id="inputFuelOdo" min="0" step="1" inputmode="numeric" placeholder="例: 45120（空欄でも可）">
+        </label>
+        <p class="field-hint">入力すると「給油時点」と「その日の最終値（上のオドメーター欄）」を2件に分けて記録します。空欄のままなら、これまで通り1件だけ記録されます。</p>
+      </div>
+      <div class="form-actions">
+        <button type="submit" id="submitBtn">記録する</button>
+        <button type="button" id="cancelEdit" class="ghost hidden">キャンセル</button>
+      </div>
+      <p class="form-error" id="formError"></p>
+    </form>
+  </section>
+
+  <section class="card hidden" id="chartCard">
+    <h2>区間ごとの走行距離</h2>
+    <div class="chart-scroll">
+      <svg id="chartSvg" height="140"></svg>
+    </div>
+  </section>
+
+  <section class="card">
+    <button type="button" class="log-toggle" id="logToggle" aria-expanded="false">
+      <span class="log-toggle-arrow" id="logToggleArrow">▸</span>
+      <h2>記録一覧</h2>
+      <span class="log-toggle-count" id="logToggleCount"></span>
+    </button>
+    <div id="logListWrap" class="hidden">
+      <div id="logList"></div>
+      <p class="empty-state hidden" id="emptyState">まだ記録がありません。最初のオドメーター値を記録しましょう。</p>
+    </div>
+  </section>
+
+  <section class="card">
+    <h2>データのバックアップ</h2>
+    <p class="backup-desc">記録はこの端末のブラウザにだけ保存されています（すべての車両分をまとめて保存します）。機種変更やブラウザの変更に備えて、バックアップファイルを保存しておくことをおすすめします。</p>
+    <div class="backup-actions">
+      <button type="button" id="exportBtn">バックアップを保存</button>
+      <button type="button" id="importBtn">バックアップを読み込む</button>
+      <input type="file" id="importFile" accept="application/json,.json" class="hidden">
+    </div>
+    <p class="backup-status" id="backupStatus"></p>
+  </section>
+
+  <section class="card">
+    <h2>CSVファイルの読み込み</h2>
+    <p class="backup-desc">他の燃費・走行距離記録アプリからエクスポートしたCSVファイルを読み込めます（日付・距離・給油量・支払額・メモの列に対応）。</p>
+    <div class="backup-actions">
+      <button type="button" id="csvImportBtn">CSVを読み込む</button>
+      <input type="file" id="csvFile" accept=".csv,text/csv" class="hidden">
+    </div>
+
+    <div class="hidden" id="csvPanel" style="margin-top:14px;">
+      <p class="backup-desc" id="csvSummary"></p>
+      <label>読み込み先の車両
+        <select id="csvVehicleSelect"></select>
+      </label>
+      <label id="csvNewNameWrap">新しい車両の名前
+        <input type="text" id="csvNewVehicleName" maxlength="30">
+      </label>
+      <div class="add-vehicle-actions">
+        <button type="button" class="primary" id="csvConfirmBtn">この車両に読み込む</button>
+        <button type="button" class="ghost" id="csvCancelBtn">キャンセル</button>
+      </div>
+    </div>
+    <p class="backup-status" id="csvStatus"></p>
+  </section>
+
+</div>
+
+<script>
+
+(function(){
+  "use strict";
+
+  var VEHICLES_KEY = "odo-log-vehicles-v2";
+  var ACTIVE_KEY = "odo-log-active-vehicle";
+  var OLD_ENTRIES_KEY = "odo-log-entries"; // v1 single-vehicle format, used for migration only
+  var THEME_KEY = "odo-log-theme";
+
+  // Quick self-test: some browsers (strict private/incognito modes, or
+  // "block all cookies/site data" settings) make localStorage throw on
+  // every read/write. Detect that up front and warn clearly, rather than
+  // silently behaving as if every record were lost.
+  function storageAvailable(){
+    try{
+      var testKey = "__odo_storage_test__";
+      localStorage.setItem(testKey, "1");
+      localStorage.removeItem(testKey);
+      return true;
+    }catch(e){
+      return false;
+    }
+  }
+  if(!storageAvailable()){
+    var warnEl = document.getElementById("storageWarning");
+    if(warnEl) warnEl.classList.remove("hidden");
+  }
+
+  var editingId = null;
+  var confirmDeleteId = null;
+  var newVehicleType = "car";
+
+  var VEHICLE_ICONS = { car: "🚗", motorcycle: "🏍️" };
+  var VEHICLE_TYPE_LABEL = { car: "車", motorcycle: "バイク" };
+
+  // ---------- Helpers ----------
+  function uid(){
+    if(window.crypto && crypto.randomUUID) return crypto.randomUUID();
+    return "id-" + Date.now() + "-" + Math.random().toString(16).slice(2);
+  }
+  function fmt(n){
+    return Number(n).toLocaleString("ja-JP");
+  }
+  function fmtDateJP(iso){
+    var d = new Date(iso + "T00:00:00");
+    if(isNaN(d.getTime())) return iso;
+    return d.getFullYear() + "年" + (d.getMonth()+1) + "月" + d.getDate() + "日";
+  }
+  function fmtDateShort(iso){
+    var d = new Date(iso + "T00:00:00");
+    if(isNaN(d.getTime())) return iso;
+    return (d.getMonth()+1) + "/" + d.getDate();
+  }
+  function sortedAsc(list){
+    return list.slice().sort(function(a,b){
+      if(a.date !== b.date) return a.date < b.date ? -1 : 1;
+      return (a.createdAt||0) - (b.createdAt||0);
+    });
+  }
+  function todayISO(){
+    var today = new Date();
+    return today.getFullYear() + "-" + String(today.getMonth()+1).padStart(2,"0") + "-" + String(today.getDate()).padStart(2,"0");
+  }
+
+  // ---------- Vehicles: load / save / migrate ----------
+  function loadVehicles(){
+    try{
+      var raw = localStorage.getItem(VEHICLES_KEY);
+      if(raw){
+        var parsed = JSON.parse(raw);
+        if(Array.isArray(parsed) && parsed.length) return parsed;
+      }
+    }catch(e){
+      console.error("読み込みエラー:", e);
+    }
+    // migrate from the old single-vehicle format, if present
+    var oldEntries = [];
+    try{
+      var oldRaw = localStorage.getItem(OLD_ENTRIES_KEY);
+      if(oldRaw){
+        var parsedOld = JSON.parse(oldRaw);
+        if(Array.isArray(parsedOld)) oldEntries = parsedOld;
+      }
+    }catch(e){}
+    return [{ id: uid(), name: "マイカー", type: "car", entries: oldEntries }];
+  }
+
+  function saveVehicles(){
+    try{
+      localStorage.setItem(VEHICLES_KEY, JSON.stringify(vehicles));
+      return true;
+    }catch(e){
+      console.error("保存エラー:", e);
+      return false;
+    }
+  }
+
+  var vehicles = loadVehicles();
+
+  var activeVehicleId = null;
+  try{ activeVehicleId = localStorage.getItem(ACTIVE_KEY); }catch(e){}
+  if(!activeVehicleId || !vehicles.some(function(v){ return v.id === activeVehicleId; })){
+    activeVehicleId = vehicles[0].id;
+  }
+  function setActiveVehicleId(id){
+    activeVehicleId = id;
+    try{ localStorage.setItem(ACTIVE_KEY, id); }catch(e){}
+  }
+  function activeVehicle(){
+    return vehicles.find(function(v){ return v.id === activeVehicleId; }) || vehicles[0];
+  }
+  saveVehicles(); // persist migration result immediately
+
+  // ---------- Cross-tab sync ----------
+  // The 'storage' event fires in OTHER tabs/windows of the same origin
+  // whenever localStorage changes here — never in the tab that made the
+  // change itself. We use it to pull in the latest data instead of
+  // silently overwriting it when this tab next saves.
+  var syncBanner = document.getElementById("syncBanner");
+  var syncBannerTimer = null;
+  function showSyncBanner(msg){
+    syncBanner.textContent = msg;
+    syncBanner.classList.remove("hidden");
+    syncBanner.style.opacity = "1";
+    if(syncBannerTimer) clearTimeout(syncBannerTimer);
+    syncBannerTimer = setTimeout(function(){
+      syncBanner.style.opacity = "0";
+      setTimeout(function(){ syncBanner.classList.add("hidden"); }, 320);
+    }, 3200);
+  }
+
+  window.addEventListener("storage", function(e){
+    // e.key is null when localStorage.clear() was called elsewhere.
+    if(e.key !== VEHICLES_KEY && e.key !== null) return;
+
+    var wasEditing = !!editingId;
+    var editedEntryId = editingId;
+
+    vehicles = loadVehicles();
+    if(!vehicles.length){
+      vehicles = [{ id: uid(), name: "マイカー", type: "car", entries: [] }];
+    }
+    if(!vehicles.some(function(v){ return v.id === activeVehicleId; })){
+      activeVehicleId = vehicles[0].id;
+      try{ localStorage.setItem(ACTIVE_KEY, activeVehicleId); }catch(err){}
+    }
+
+    confirmDeleteId = null;
+    confirmDeleteVehicleId = null;
+    renamingVehicleId = null;
+
+    if(wasEditing){
+      var stillThere = activeVehicle().entries.some(function(en){ return en.id === editedEntryId; });
+      if(!stillThere){
+        resetForm();
+        formError.textContent = "編集中だった記録が、別のタブでの変更により見つからなくなりました。内容をご確認ください。";
+      }
+    }
+
+    renderAll();
+    showSyncBanner("他のタブでの変更を反映しました");
+  });
+
+  // ---------- Theme ----------
+  function initTheme(){
+    var saved = null;
+    try{ saved = localStorage.getItem(THEME_KEY); }catch(e){}
+    if(saved === "light" || saved === "dark"){
+      document.documentElement.setAttribute("data-theme", saved);
+    }
+    updateThemeIcon();
+  }
+  function updateThemeIcon(){
+    var current = document.documentElement.getAttribute("data-theme");
+    var prefersDark = window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches;
+    var isDark = current ? current === "dark" : prefersDark;
+    document.getElementById("themeToggle").textContent = isDark ? "☀" : "☾";
+  }
+  document.getElementById("themeToggle").addEventListener("click", function(){
+    var current = document.documentElement.getAttribute("data-theme");
+    var prefersDark = window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches;
+    var isDark = current ? current === "dark" : prefersDark;
+    var next = isDark ? "light" : "dark";
+    document.documentElement.setAttribute("data-theme", next);
+    try{ localStorage.setItem(THEME_KEY, next); }catch(e){}
+    updateThemeIcon();
+  });
+  initTheme();
+
+  // ---------- Log list collapse/expand ----------
+  var LOG_COLLAPSE_KEY = "odo-log-list-collapsed";
+  var logToggle = document.getElementById("logToggle");
+  var logListWrap = document.getElementById("logListWrap");
+  var logToggleArrow = document.getElementById("logToggleArrow");
+  var logCollapsed = true; // collapsed by default so the backup section is easy to reach
+  try{
+    var savedCollapse = localStorage.getItem(LOG_COLLAPSE_KEY);
+    if(savedCollapse === "0") logCollapsed = false;
+  }catch(e){}
+
+  function applyLogCollapsed(){
+    logListWrap.classList.toggle("hidden", logCollapsed);
+    logToggle.setAttribute("aria-expanded", String(!logCollapsed));
+    logToggleArrow.textContent = "▸";
+  }
+  applyLogCollapsed();
+
+  logToggle.addEventListener("click", function(){
+    logCollapsed = !logCollapsed;
+    try{ localStorage.setItem(LOG_COLLAPSE_KEY, logCollapsed ? "1" : "0"); }catch(e){}
+    applyLogCollapsed();
+  });
+
+  // ---------- Render: vehicle switcher ----------
+  function renderVehicleSwitcher(){
+    var scroll = document.getElementById("vehicleScroll");
+    scroll.innerHTML = "";
+    vehicles.forEach(function(v){
+      var chip = document.createElement("button");
+      chip.type = "button";
+      chip.className = "vehicle-chip" + (v.id === activeVehicleId ? " active" : "");
+      var icon = document.createElement("span");
+      icon.className = "vc-icon";
+      icon.textContent = VEHICLE_ICONS[v.type] || "🚗";
+      chip.appendChild(icon);
+      chip.appendChild(document.createTextNode(v.name));
+      chip.addEventListener("click", function(){
+        if(activeVehicleId === v.id) return;
+        setActiveVehicleId(v.id);
+        confirmDeleteId = null;
+        resetForm();
+        renderAll();
+      });
+      scroll.appendChild(chip);
+    });
+
+    renderVehicleManageList();
+  }
+
+  var renamingVehicleId = null;
+  var confirmDeleteVehicleId = null;
+
+  function renderVehicleManageList(){
+    var list = document.getElementById("vehicleList");
+    list.innerHTML = "";
+    vehicles.forEach(function(v){
+      var row = document.createElement("div");
+      row.className = "vehicle-manage-row";
+
+      if(renamingVehicleId === v.id){
+        var nameInput = document.createElement("input");
+        nameInput.type = "text";
+        nameInput.value = v.name;
+        nameInput.maxLength = 30;
+        nameInput.style.flex = "1";
+        nameInput.style.padding = "7px 9px";
+        nameInput.style.fontSize = "13px";
+        nameInput.style.fontFamily = "inherit";
+        nameInput.style.color = "var(--ink)";
+        nameInput.style.background = "var(--surface-2)";
+        nameInput.style.border = "1px solid var(--line)";
+        nameInput.style.borderRadius = "7px";
+        row.appendChild(nameInput);
+
+        var saveBtn = document.createElement("button");
+        saveBtn.type = "button";
+        saveBtn.textContent = "保存";
+        function commitRename(){
+          var next = nameInput.value.trim();
+          if(next) v.name = next.slice(0, 30);
+          renamingVehicleId = null;
+          saveVehicles();
+          renderVehicleSwitcher();
+          renderHeroLabel();
+        }
+        saveBtn.addEventListener("click", commitRename);
+        nameInput.addEventListener("keydown", function(e){
+          if(e.key === "Enter"){ e.preventDefault(); commitRename(); }
+          if(e.key === "Escape"){ renamingVehicleId = null; renderVehicleSwitcher(); }
+        });
+        row.appendChild(saveBtn);
+
+        var cancelRenameBtn = document.createElement("button");
+        cancelRenameBtn.type = "button";
+        cancelRenameBtn.textContent = "やめる";
+        cancelRenameBtn.addEventListener("click", function(){
+          renamingVehicleId = null;
+          renderVehicleSwitcher();
+        });
+        row.appendChild(cancelRenameBtn);
+
+        list.appendChild(row);
+        nameInput.focus();
+        nameInput.select();
+        return;
+      }
+
+      var name = document.createElement("span");
+      name.className = "vm-name";
+      name.textContent = (VEHICLE_ICONS[v.type] || "🚗") + " " + v.name + "（" + v.entries.length + "件）";
+      row.appendChild(name);
+
+      var renameBtn = document.createElement("button");
+      renameBtn.type = "button";
+      renameBtn.textContent = "名前変更";
+      renameBtn.addEventListener("click", function(){
+        renamingVehicleId = v.id;
+        confirmDeleteVehicleId = null;
+        renderVehicleManageList();
+      });
+      row.appendChild(renameBtn);
+
+      if(vehicles.length > 1){
+        if(confirmDeleteVehicleId === v.id){
+          var confirmBtn = document.createElement("button");
+          confirmBtn.type = "button";
+          confirmBtn.className = "danger";
+          confirmBtn.textContent = "本当に削除する？（" + v.entries.length + "件）";
+          confirmBtn.addEventListener("click", function(){
+            vehicles = vehicles.filter(function(x){ return x.id !== v.id; });
+            if(activeVehicleId === v.id){
+              setActiveVehicleId(vehicles[0].id);
+            }
+            confirmDeleteVehicleId = null;
+            saveVehicles();
+            resetForm();
+            renderAll();
+          });
+          row.appendChild(confirmBtn);
+
+          var cancelDelBtn = document.createElement("button");
+          cancelDelBtn.type = "button";
+          cancelDelBtn.textContent = "やめる";
+          cancelDelBtn.addEventListener("click", function(){
+            confirmDeleteVehicleId = null;
+            renderVehicleManageList();
+          });
+          row.appendChild(cancelDelBtn);
+        } else {
+          var delBtn = document.createElement("button");
+          delBtn.type = "button";
+          delBtn.className = "danger";
+          delBtn.textContent = "削除";
+          delBtn.addEventListener("click", function(){
+            confirmDeleteVehicleId = v.id;
+            renamingVehicleId = null;
+            renderVehicleManageList();
+          });
+          row.appendChild(delBtn);
+        }
+      }
+
+      list.appendChild(row);
+    });
+  }
+
+  document.getElementById("manageToggle").addEventListener("click", function(){
+    var section = document.getElementById("manageSection");
+    var willOpen = section.classList.contains("hidden");
+    section.classList.toggle("hidden");
+    this.textContent = willOpen ? "車両の管理を閉じる" : "車両を管理・追加する";
+  });
+
+  var addVehicleForm = document.getElementById("addVehicleForm");
+  document.getElementById("openAddVehicle").addEventListener("click", function(){
+    addVehicleForm.classList.toggle("open");
+    if(addVehicleForm.classList.contains("open")){
+      document.getElementById("newVehicleName").focus();
+    }
+  });
+
+  var typeBtnCar = document.getElementById("typeBtnCar");
+  var typeBtnMoto = document.getElementById("typeBtnMoto");
+  function setNewVehicleType(type){
+    newVehicleType = type;
+    typeBtnCar.classList.toggle("selected", type === "car");
+    typeBtnMoto.classList.toggle("selected", type === "motorcycle");
+  }
+  typeBtnCar.addEventListener("click", function(){ setNewVehicleType("car"); });
+  typeBtnMoto.addEventListener("click", function(){ setNewVehicleType("motorcycle"); });
+
+  document.getElementById("saveVehicleBtn").addEventListener("click", function(){
+    var nameInput = document.getElementById("newVehicleName");
+    var name = nameInput.value.trim();
+    if(!name){
+      nameInput.focus();
+      return;
+    }
+    var v = { id: uid(), name: name.slice(0,30), type: newVehicleType, entries: [] };
+    vehicles.push(v);
+    saveVehicles();
+    setActiveVehicleId(v.id);
+    nameInput.value = "";
+    setNewVehicleType("car");
+    addVehicleForm.classList.remove("open");
+    resetForm();
+    renderAll();
+  });
+
+  function renderHeroLabel(){
+    var v = activeVehicle();
+    document.getElementById("heroLabel").textContent = "最新のオドメーター — " + (VEHICLE_ICONS[v.type]||"🚗") + " " + v.name;
+  }
+
+  // ---------- Render: hero odometer ----------
+  function renderHero(asc){
+    var display = document.getElementById("odometerDisplay");
+    var dateEl = document.getElementById("odometerDate");
+    display.innerHTML = "";
+    renderHeroLabel();
+
+    if(asc.length === 0){
+      var placeholder = "000000";
+      for(var i=0;i<placeholder.length;i++){
+        var box = document.createElement("span");
+        box.className = "digit dim";
+        box.textContent = "0";
+        display.appendChild(box);
+      }
+      var unit = document.createElement("span");
+      unit.className = "digit unit";
+      unit.textContent = "km";
+      display.appendChild(unit);
+      dateEl.textContent = "まだ記録がありません";
+      return;
+    }
+
+    var latest = asc[asc.length-1];
+    var rounded = Math.max(0, Math.round(latest.odo));
+    var str = String(rounded);
+    while(str.length < 6) str = "0" + str;
+    var firstSignificant = str.length - String(rounded).length;
+    for(var j=0;j<str.length;j++){
+      var d = document.createElement("span");
+      d.className = "digit" + (j < firstSignificant ? " dim" : "");
+      d.textContent = str[j];
+      display.appendChild(d);
+    }
+    var u = document.createElement("span");
+    u.className = "digit unit";
+    u.textContent = "km";
+    display.appendChild(u);
+    dateEl.textContent = "記録日: " + fmtDateJP(latest.date);
+  }
+
+  // ---------- Render: stats ----------
+  function renderStats(asc){
+    var totalEl = document.getElementById("statTotal");
+    var avgEl = document.getElementById("statAvg");
+    var countEl = document.getElementById("statCount");
+    countEl.textContent = fmt(asc.length);
+
+    if(asc.length < 2){
+      totalEl.textContent = "—";
+      avgEl.textContent = "—";
+      return;
+    }
+    var first = asc[0], last = asc[asc.length-1];
+    var total = last.odo - first.odo;
+    totalEl.textContent = fmt(Math.round(total));
+
+    var days = (new Date(last.date) - new Date(first.date)) / 86400000;
+    days = Math.max(1, Math.round(days));
+    var avg = total / days;
+    avgEl.textContent = fmt(Math.round(avg));
+  }
+
+  // ---------- Render: chart ----------
+  function renderChart(asc){
+    var card = document.getElementById("chartCard");
+    var svg = document.getElementById("chartSvg");
+    if(asc.length < 2){
+      card.classList.add("hidden");
+      svg.innerHTML = "";
+      return;
+    }
+    card.classList.remove("hidden");
+
+    var deltas = [];
+    for(var i=1;i<asc.length;i++){
+      deltas.push({
+        date: asc[i].date,
+        value: Math.max(0, asc[i].odo - asc[i-1].odo)
+      });
+    }
+
+    var barW = 34, gap = 14, leftPad = 8, topPad = 20, bottomPad = 30;
+    var chartH = 140 - topPad - bottomPad;
+    var maxV = Math.max.apply(null, deltas.map(function(d){return d.value;})) || 1;
+    var width = leftPad*2 + deltas.length*(barW+gap) - gap;
+    svg.setAttribute("width", width);
+    svg.setAttribute("viewBox", "0 0 " + width + " 140");
+
+    var ns = "http://www.w3.org/2000/svg";
+    while(svg.firstChild) svg.removeChild(svg.firstChild);
+
+    var accent = getComputedStyle(document.documentElement).getPropertyValue("--accent").trim() || "#C4791F";
+    var line = getComputedStyle(document.documentElement).getPropertyValue("--line").trim() || "#ccc";
+
+    var baseline = document.createElementNS(ns, "line");
+    baseline.setAttribute("x1", 0);
+    baseline.setAttribute("x2", width);
+    baseline.setAttribute("y1", topPad+chartH);
+    baseline.setAttribute("y2", topPad+chartH);
+    baseline.setAttribute("stroke", line);
+    baseline.setAttribute("stroke-width", "1");
+    svg.appendChild(baseline);
+
+    deltas.forEach(function(d, idx){
+      var h = Math.max(2, (d.value / maxV) * chartH);
+      var x = leftPad + idx*(barW+gap);
+      var y = topPad + chartH - h;
+
+      var rect = document.createElementNS(ns, "rect");
+      rect.setAttribute("x", x);
+      rect.setAttribute("y", y);
+      rect.setAttribute("width", barW);
+      rect.setAttribute("height", h);
+      rect.setAttribute("rx", 4);
+      rect.setAttribute("fill", accent);
+      svg.appendChild(rect);
+
+      var valText = document.createElementNS(ns, "text");
+      valText.setAttribute("x", x + barW/2);
+      valText.setAttribute("y", y - 6);
+      valText.setAttribute("text-anchor", "middle");
+      valText.setAttribute("class", "bar-value");
+      valText.textContent = fmt(Math.round(d.value));
+      svg.appendChild(valText);
+
+      var labelText = document.createElementNS(ns, "text");
+      labelText.setAttribute("x", x + barW/2);
+      labelText.setAttribute("y", topPad + chartH + 16);
+      labelText.setAttribute("text-anchor", "middle");
+      labelText.setAttribute("class", "bar-label");
+      labelText.textContent = fmtDateShort(d.date);
+      svg.appendChild(labelText);
+    });
+  }
+
+  // ---------- Render: log list ----------
+  function renderLog(asc){
+    var list = document.getElementById("logList");
+    var empty = document.getElementById("emptyState");
+    list.innerHTML = "";
+
+    var countEl = document.getElementById("logToggleCount");
+    if(countEl) countEl.textContent = asc.length > 0 ? "（" + fmt(asc.length) + "件）" : "";
+
+    if(asc.length === 0){
+      empty.classList.remove("hidden");
+      return;
+    }
+    empty.classList.add("hidden");
+
+    var desc = asc.slice().reverse();
+
+    desc.forEach(function(entry, idxDesc){
+      var ascIdx = asc.length - 1 - idxDesc;
+      var prev = ascIdx > 0 ? asc[ascIdx-1] : null;
+      var delta = prev ? entry.odo - prev.odo : null;
+
+      var row = document.createElement("div");
+      row.className = "log-row";
+
+      var main = document.createElement("div");
+      main.className = "log-main";
+      main.textContent = fmt(Math.round(entry.odo)) + " km";
+      row.appendChild(main);
+
+      var deltaEl = document.createElement("div");
+      deltaEl.className = "log-delta" + (delta !== null && delta < 0 ? " negative" : "");
+      deltaEl.textContent = delta === null ? "初回記録" : (delta >= 0 ? "+" : "") + fmt(Math.round(delta)) + " km";
+      row.appendChild(deltaEl);
+
+      var dateEl = document.createElement("div");
+      dateEl.className = "log-date";
+      dateEl.textContent = fmtDateJP(entry.date);
+      row.appendChild(dateEl);
+
+      if(entry.note){
+        var noteEl = document.createElement("div");
+        noteEl.className = "log-note";
+        noteEl.textContent = entry.note;
+        row.appendChild(noteEl);
+      }
+
+      if(entry.fuel){
+        var tags = document.createElement("div");
+        tags.className = "log-tags";
+        var tag = document.createElement("span");
+        tag.className = "tag";
+        tag.textContent = "給油";
+        tags.appendChild(tag);
+        row.appendChild(tags);
+      }
+
+      var actions = document.createElement("div");
+      actions.className = "log-actions";
+
+      var editBtn = document.createElement("button");
+      editBtn.type = "button";
+      editBtn.textContent = "編集";
+      editBtn.addEventListener("click", function(){ startEdit(entry.id); });
+      actions.appendChild(editBtn);
+
+      var delBtn = document.createElement("button");
+      delBtn.type = "button";
+      if(confirmDeleteId === entry.id){
+        delBtn.textContent = "本当に削除する？";
+        delBtn.className = "confirm-del";
+        delBtn.addEventListener("click", function(){
+          deleteEntry(entry.id);
+        });
+        var cancelBtn = document.createElement("button");
+        cancelBtn.type = "button";
+        cancelBtn.textContent = "やめる";
+        cancelBtn.addEventListener("click", function(){
+          confirmDeleteId = null;
+          renderAll();
+        });
+        actions.appendChild(delBtn);
+        actions.appendChild(cancelBtn);
+      } else {
+        delBtn.textContent = "削除";
+        delBtn.addEventListener("click", function(){
+          confirmDeleteId = entry.id;
+          renderAll();
+        });
+        actions.appendChild(delBtn);
+      }
+
+      row.appendChild(actions);
+      list.appendChild(row);
+    });
+  }
+
+  // ---------- Render: all ----------
+  function renderAll(){
+    renderVehicleSwitcher();
+    var asc = sortedAsc(activeVehicle().entries);
+    renderHero(asc);
+    renderStats(asc);
+    renderChart(asc);
+    renderLog(asc);
+  }
+
+  // ---------- Form ----------
+  var form = document.getElementById("entryForm");
+  var inputDate = document.getElementById("inputDate");
+  var inputOdo = document.getElementById("inputOdo");
+  var inputNote = document.getElementById("inputNote");
+  var inputFuel = document.getElementById("inputFuel");
+  var inputFuelOdo = document.getElementById("inputFuelOdo");
+  var fuelOdoWrap = document.getElementById("fuelOdoWrap");
+  var formError = document.getElementById("formError");
+  var submitBtn = document.getElementById("submitBtn");
+  var cancelEditBtn = document.getElementById("cancelEdit");
+  var formTitle = document.getElementById("formTitle");
+
+  inputDate.value = todayISO();
+
+  function updateFuelOdoVisibility(){
+    // Only offered when adding a new entry — editing an existing entry
+    // always represents a single odometer reading.
+    fuelOdoWrap.classList.toggle("hidden", !(inputFuel.checked && !editingId));
+  }
+  inputFuel.addEventListener("change", updateFuelOdoVisibility);
+
+  function startEdit(id){
+    var entry = activeVehicle().entries.find(function(e){ return e.id === id; });
+    if(!entry) return;
+    editingId = id;
+    confirmDeleteId = null;
+    inputDate.value = entry.date;
+    inputOdo.value = entry.odo;
+    inputNote.value = entry.note || "";
+    inputFuel.checked = !!entry.fuel;
+    inputFuelOdo.value = "";
+    updateFuelOdoVisibility();
+    formTitle.textContent = "記録を編集";
+    submitBtn.textContent = "更新する";
+    cancelEditBtn.classList.remove("hidden");
+    formError.textContent = "";
+    form.scrollIntoView({behavior:"smooth", block:"start"});
+    renderAll();
+  }
+
+  function resetForm(){
+    editingId = null;
+    form.reset();
+    inputDate.value = todayISO();
+    updateFuelOdoVisibility();
+    formTitle.textContent = "記録を追加";
+    submitBtn.textContent = "記録する";
+    cancelEditBtn.classList.add("hidden");
+    formError.textContent = "";
+  }
+
+  cancelEditBtn.addEventListener("click", resetForm);
+
+  function deleteEntry(id){
+    var v = activeVehicle();
+    v.entries = v.entries.filter(function(e){ return e.id !== id; });
+    confirmDeleteId = null;
+    if(editingId === id) resetForm();
+    if(!saveVehicles()){
+      formError.textContent = "削除の保存に失敗しました。もう一度お試しください。";
+    }
+    renderAll();
+  }
+
+  form.addEventListener("submit", function(e){
+    e.preventDefault();
+    formError.textContent = "";
+
+    var date = inputDate.value;
+    var odoRaw = inputOdo.value;
+    var note = inputNote.value.trim();
+    var fuel = inputFuel.checked;
+
+    if(!date){
+      formError.textContent = "日付を入力してください。";
+      return;
+    }
+    if(odoRaw === "" || isNaN(Number(odoRaw)) || Number(odoRaw) < 0){
+      formError.textContent = "オドメーターの値を正しく入力してください。";
+      return;
+    }
+    var odo = Number(odoRaw);
+    var v = activeVehicle();
+
+    if(editingId){
+      var idx = v.entries.findIndex(function(e){ return e.id === editingId; });
+      if(idx !== -1){
+        v.entries[idx] = Object.assign({}, v.entries[idx], { date: date, odo: odo, note: note, fuel: fuel, updatedAt: Date.now() });
+      }
+    } else {
+      var fuelOdoRaw = fuel ? inputFuelOdo.value.trim() : "";
+      if(fuelOdoRaw !== ""){
+        if(isNaN(Number(fuelOdoRaw)) || Number(fuelOdoRaw) < 0){
+          formError.textContent = "給油時のオドメーター値を正しく入力してください。";
+          return;
+        }
+        var fuelOdo = Number(fuelOdoRaw);
+        if(fuelOdo > odo){
+          formError.textContent = "給油時の値は、その日の最終値（" + fmt(odo) + " km）以下にしてください。";
+          return;
+        }
+        if(fuelOdo === odo){
+          // Same value — no extra driving after the fill-up, just one entry.
+          v.entries.push({ id: uid(), date: date, odo: odo, note: note, fuel: true, createdAt: Date.now(), updatedAt: Date.now() });
+        } else {
+          // Split into two entries: the fill-up point, then the day's final reading.
+          var base = Date.now();
+          v.entries.push({ id: uid(), date: date, odo: fuelOdo, note: note, fuel: true, createdAt: base, updatedAt: base });
+          v.entries.push({ id: uid(), date: date, odo: odo, note: "", fuel: false, createdAt: base + 1, updatedAt: base + 1 });
+        }
+      } else {
+        v.entries.push({ id: uid(), date: date, odo: odo, note: note, fuel: fuel, createdAt: Date.now(), updatedAt: Date.now() });
+      }
+    }
+
+    if(!saveVehicles()){
+      formError.textContent = "保存に失敗しました。もう一度お試しください。";
+      return;
+    }
+
+    resetForm();
+    renderAll();
+  });
+
+  // ---------- Backup / restore (all vehicles) ----------
+  var exportBtn = document.getElementById("exportBtn");
+  var importBtn = document.getElementById("importBtn");
+  var importFile = document.getElementById("importFile");
+  var backupStatus = document.getElementById("backupStatus");
+
+  function setBackupStatus(msg, kind){
+    backupStatus.textContent = msg;
+    backupStatus.className = "backup-status" + (kind ? " " + kind : "");
+  }
+
+  exportBtn.addEventListener("click", function(){
+    var totalEntries = vehicles.reduce(function(sum, v){ return sum + v.entries.length; }, 0);
+    if(totalEntries === 0){
+      setBackupStatus("記録がまだないため、バックアップするデータがありません。", "error");
+      return;
+    }
+
+    var payload = {
+      app: "odo-log",
+      version: 2,
+      exportedAt: new Date().toISOString(),
+      vehicles: vehicles
+    };
+    var filename = "odometer-backup-" + todayISO() + ".json";
+    var jsonText = JSON.stringify(payload, null, 2);
+
+    try{
+      var blob = new Blob([jsonText], { type: "application/json" });
+      var url = URL.createObjectURL(blob);
+      var a = document.createElement("a");
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      setBackupStatus("バックアップを保存しました。", "ok");
+    }catch(e){
+      console.error("エクスポートエラー:", e);
+      setBackupStatus("バックアップの保存に失敗しました。", "error");
+    }
+  });
+
+  importBtn.addEventListener("click", function(){
+    importFile.value = "";
+    importFile.click();
+  });
+
+  function mergeEntriesInto(vehicle, incomingEntries){
+    var existingIds = {};
+    vehicle.entries.forEach(function(e){ existingIds[e.id] = true; });
+    var added = 0;
+    incomingEntries.forEach(function(raw){
+      if(!raw || typeof raw.date !== "string" || typeof raw.odo !== "number" || isNaN(raw.odo)) return;
+      var id = (typeof raw.id === "string" && raw.id) ? raw.id : uid();
+      if(existingIds[id]) return;
+      existingIds[id] = true;
+      vehicle.entries.push({
+        id: id,
+        date: raw.date,
+        odo: raw.odo,
+        note: typeof raw.note === "string" ? raw.note : "",
+        fuel: !!raw.fuel,
+        createdAt: typeof raw.createdAt === "number" ? raw.createdAt : Date.now(),
+        updatedAt: typeof raw.updatedAt === "number" ? raw.updatedAt : (typeof raw.createdAt === "number" ? raw.createdAt : Date.now())
+      });
+      added++;
+    });
+    return added;
+  }
+
+  importFile.addEventListener("change", function(){
+    var file = importFile.files && importFile.files[0];
+    if(!file) return;
+
+    var reader = new FileReader();
+    reader.onload = function(){
+      var parsed;
+      try{
+        parsed = JSON.parse(reader.result);
+      }catch(e){
+        setBackupStatus("このファイルは読み込めませんでした。正しいバックアップファイルか確認してください。", "error");
+        return;
+      }
+
+      var addedTotal = 0, addedVehicles = 0;
+
+      if(parsed && Array.isArray(parsed.vehicles)){
+        // v2 format: multiple vehicles
+        parsed.vehicles.forEach(function(rv){
+          if(!rv || !Array.isArray(rv.entries)) return;
+          var existing = (rv.id && vehicles.find(function(v){ return v.id === rv.id; })) ||
+                          vehicles.find(function(v){ return v.name === rv.name; });
+          if(existing){
+            addedTotal += mergeEntriesInto(existing, rv.entries);
+          } else {
+            var nv = {
+              id: (typeof rv.id === "string" && rv.id) ? rv.id : uid(),
+              name: typeof rv.name === "string" && rv.name ? rv.name.slice(0,30) : "車両",
+              type: (rv.type === "motorcycle") ? "motorcycle" : "car",
+              entries: []
+            };
+            addedTotal += mergeEntriesInto(nv, rv.entries);
+            vehicles.push(nv);
+            addedVehicles++;
+          }
+        });
+      } else {
+        // v1 / legacy format: flat entries array, import into the active vehicle
+        var incoming = Array.isArray(parsed) ? parsed : (parsed && Array.isArray(parsed.entries) ? parsed.entries : null);
+        if(!incoming){
+          setBackupStatus("このファイルにはオドメーターの記録が見つかりませんでした。", "error");
+          return;
+        }
+        addedTotal = mergeEntriesInto(activeVehicle(), incoming);
+      }
+
+      if(addedTotal === 0 && addedVehicles === 0){
+        setBackupStatus("新しく読み込める記録はありませんでした（すでに読み込み済みの可能性があります）。", "error");
+        return;
+      }
+
+      if(!saveVehicles()){
+        setBackupStatus("読み込んだデータの保存に失敗しました。", "error");
+        return;
+      }
+
+      var msg = addedTotal + "件の記録を読み込みました。";
+      if(addedVehicles > 0) msg += "（新しい車両を" + addedVehicles + "台追加）";
+      setBackupStatus(msg, "ok");
+      renderAll();
+    };
+    reader.onerror = function(){
+      setBackupStatus("ファイルの読み込み中にエラーが発生しました。", "error");
+    };
+    reader.readAsText(file);
+  });
+
+  // ---------- CSV import ----------
+  var csvImportBtn = document.getElementById("csvImportBtn");
+  var csvFile = document.getElementById("csvFile");
+  var csvPanel = document.getElementById("csvPanel");
+  var csvSummary = document.getElementById("csvSummary");
+  var csvVehicleSelect = document.getElementById("csvVehicleSelect");
+  var csvNewNameWrap = document.getElementById("csvNewNameWrap");
+  var csvNewVehicleName = document.getElementById("csvNewVehicleName");
+  var csvConfirmBtn = document.getElementById("csvConfirmBtn");
+  var csvCancelBtn = document.getElementById("csvCancelBtn");
+  var csvStatusEl = document.getElementById("csvStatus");
+  var pendingCsvEntries = null;
+
+  function setCsvStatus(msg, kind){
+    csvStatusEl.textContent = msg;
+    csvStatusEl.className = "backup-status" + (kind ? " " + kind : "");
+  }
+
+  // Minimal RFC4180-style CSV parser: handles quoted fields, embedded
+  // commas/newlines inside quotes, and "" as an escaped quote.
+  function parseCSV(text){
+    var rows = [];
+    var row = [];
+    var field = "";
+    var inQuotes = false;
+    for(var i=0;i<text.length;i++){
+      var c = text[i];
+      if(inQuotes){
+        if(c === '"'){
+          if(text[i+1] === '"'){ field += '"'; i++; }
+          else { inQuotes = false; }
+        } else {
+          field += c;
+        }
+      } else if(c === '"'){
+        inQuotes = true;
+      } else if(c === ","){
+        row.push(field); field = "";
+      } else if(c === "\r"){
+        // skip, \n handles the line break
+      } else if(c === "\n"){
+        row.push(field); rows.push(row); row = []; field = "";
+      } else {
+        field += c;
+      }
+    }
+    if(field.length || row.length){ row.push(field); rows.push(row); }
+    return rows.filter(function(r){ return !(r.length === 1 && r[0].trim() === ""); });
+  }
+
+  function parseCsvDate(raw){
+    // Accepts "2023/1/28" or "2023-01-28" style dates.
+    var m = String(raw).trim().match(/^(\d{4})[\/\-](\d{1,2})[\/\-](\d{1,2})/);
+    if(!m) return null;
+    var y = m[1], mo = String(m[2]).padStart(2,"0"), da = String(m[3]).padStart(2,"0");
+    return y + "-" + mo + "-" + da;
+  }
+
+  function findCol(header, candidates){
+    for(var i=0;i<header.length;i++){
+      var h = header[i].replace(/^\uFEFF/, "").trim();
+      for(var j=0;j<candidates.length;j++){
+        if(h.indexOf(candidates[j]) !== -1) return i;
+      }
+    }
+    return -1;
+  }
+
+  function suggestVehicleName(filename){
+    var base = filename.replace(/\.csv$/i, "");
+    var parts = base.split(/[_\-]/).filter(Boolean);
+    if(parts.length >= 2) return parts[1];
+    return base || "車両";
+  }
+
+  csvImportBtn.addEventListener("click", function(){
+    csvFile.value = "";
+    csvFile.click();
+  });
+
+  csvCancelBtn.addEventListener("click", function(){
+    csvPanel.classList.add("hidden");
+    pendingCsvEntries = null;
+    setCsvStatus("");
+  });
+
+  csvVehicleSelect.addEventListener("change", function(){
+    csvNewNameWrap.classList.toggle("hidden", csvVehicleSelect.value !== "__new__");
+  });
+
+  csvFile.addEventListener("change", function(){
+    var file = csvFile.files && csvFile.files[0];
+    if(!file) return;
+    setCsvStatus("");
+
+    var reader = new FileReader();
+    reader.onload = function(){
+      var rows;
+      try{
+        rows = parseCSV(String(reader.result));
+      }catch(e){
+        console.error("CSV解析エラー:", e);
+        setCsvStatus("CSVファイルの解析に失敗しました。", "error");
+        return;
+      }
+      if(rows.length < 2){
+        setCsvStatus("CSVファイルに記録が見つかりませんでした。", "error");
+        return;
+      }
+
+      var header = rows[0];
+      var iDate = findCol(header, ["日付", "date", "Date"]);
+      var iOdo = findCol(header, ["距離", "オドメーター", "odometer", "km"]);
+      var iFuelL = findCol(header, ["給油量"]);
+      var iPay = findCol(header, ["支払額", "金額"]);
+      var iPrice = findCol(header, ["単価"]);
+      var iNote = findCol(header, ["メモ", "備考", "note"]);
+
+      if(iDate === -1 || iOdo === -1){
+        setCsvStatus("「日付」と「距離」に相当する列が見つかりませんでした。列名をご確認ください。", "error");
+        return;
+      }
+
+      var parsedEntries = [];
+      var invalid = 0;
+      for(var r=1;r<rows.length;r++){
+        var row = rows[r];
+        if(!row || row.every(function(c){ return c.trim() === ""; })) continue;
+
+        var iso = parseCsvDate(row[iDate]);
+        var odo = iOdo > -1 ? parseFloat(row[iOdo]) : NaN;
+        if(!iso || isNaN(odo)){ invalid++; continue; }
+
+        var fuelL = iFuelL > -1 ? parseFloat(row[iFuelL]) : 0;
+        if(isNaN(fuelL)) fuelL = 0;
+        var pay = iPay > -1 ? parseFloat(row[iPay]) : 0;
+        if(isNaN(pay)) pay = 0;
+        var price = iPrice > -1 ? parseFloat(row[iPrice]) : 0;
+        if(isNaN(price)) price = 0;
+        var rawNote = iNote > -1 ? row[iNote].trim() : "";
+
+        var noteParts = [];
+        if(rawNote && rawNote !== "給油") noteParts.push(rawNote);
+        if(fuelL > 0){
+          var detail = fuelL.toFixed(2) + "L";
+          if(pay > 0) detail += " ・ " + fmt(Math.round(pay)) + "円";
+          if(price > 0) detail += "（@" + fmt(Math.round(price)) + "円/L）";
+          noteParts.push(detail);
+        }
+
+        parsedEntries.push({
+          date: iso,
+          odo: odo,
+          note: noteParts.join(" / "),
+          fuel: fuelL > 0
+        });
+      }
+
+      if(parsedEntries.length === 0){
+        setCsvStatus("読み込める記録が見つかりませんでした。", "error");
+        return;
+      }
+
+      pendingCsvEntries = parsedEntries;
+      var datesAsc = parsedEntries.map(function(e){return e.date;}).sort();
+
+      csvSummary.textContent = parsedEntries.length + "件の記録が見つかりました（" +
+        fmtDateJP(datesAsc[0]) + " 〜 " + fmtDateJP(datesAsc[datesAsc.length-1]) + "）" +
+        (invalid > 0 ? "。" + invalid + "件は日付または距離が読み取れず、スキップされます。" : "。");
+
+      var suggested = suggestVehicleName(file.name);
+      csvVehicleSelect.innerHTML = "";
+      var newOpt = document.createElement("option");
+      newOpt.value = "__new__";
+      newOpt.textContent = "＋ 新しい車両として追加";
+      csvVehicleSelect.appendChild(newOpt);
+      vehicles.forEach(function(v){
+        var opt = document.createElement("option");
+        opt.value = v.id;
+        opt.textContent = (VEHICLE_ICONS[v.type]||"🚗") + " " + v.name + "（既存・" + v.entries.length + "件）に追加";
+        csvVehicleSelect.appendChild(opt);
+      });
+      csvVehicleSelect.value = "__new__";
+      csvNewVehicleName.value = suggested;
+      csvNewNameWrap.classList.remove("hidden");
+
+      csvPanel.classList.remove("hidden");
+      csvPanel.scrollIntoView({behavior:"smooth", block:"nearest"});
+    };
+    reader.onerror = function(){
+      setCsvStatus("ファイルの読み込み中にエラーが発生しました。", "error");
+    };
+    reader.readAsText(file);
+  });
+
+  csvConfirmBtn.addEventListener("click", function(){
+    if(!pendingCsvEntries || pendingCsvEntries.length === 0) return;
+
+    try{
+      var target;
+      if(csvVehicleSelect.value === "__new__"){
+        var name = csvNewVehicleName.value.trim();
+        if(!name){
+          csvNewVehicleName.focus();
+          return;
+        }
+        target = { id: uid(), name: name.slice(0,30), type: "car", entries: [] };
+        vehicles.push(target);
+      } else {
+        target = vehicles.find(function(v){ return v.id === csvVehicleSelect.value; });
+        if(!target) return;
+      }
+
+      var existingKeys = {};
+      target.entries.forEach(function(e){
+        existingKeys[e.date + "|" + e.odo + "|" + e.note] = true;
+      });
+
+      var baseTime = Date.now();
+      var added = 0, skipped = 0;
+      pendingCsvEntries.forEach(function(pe, idx){
+        var key = pe.date + "|" + pe.odo + "|" + pe.note;
+        if(existingKeys[key]){ skipped++; return; }
+        existingKeys[key] = true;
+        target.entries.push({
+          id: uid(),
+          date: pe.date,
+          odo: pe.odo,
+          note: pe.note,
+          fuel: pe.fuel,
+          createdAt: baseTime + idx,
+          updatedAt: baseTime + idx
+        });
+        added++;
+      });
+
+      if(!saveVehicles()){
+        setCsvStatus("保存に失敗しました。もう一度お試しください。", "error");
+        return;
+      }
+
+      setActiveVehicleId(target.id);
+      pendingCsvEntries = null;
+      csvPanel.classList.add("hidden");
+
+      var msg = "「" + target.name + "」に" + added + "件の記録を読み込みました。";
+      if(skipped > 0) msg += "（" + skipped + "件は重複のためスキップ）";
+      setCsvStatus(msg, "ok");
+      resetForm();
+      renderAll();
+    }catch(e){
+      console.error("CSV読み込み確定エラー:", e);
+      setCsvStatus("読み込み中にエラーが発生しました。お手数ですが、もう一度お試しください。", "error");
+    }
+  });
+
+  renderAll();
+})();
+</script>
+</body>
+</html>
